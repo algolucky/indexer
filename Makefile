@@ -23,12 +23,14 @@ COVERPKG := $(shell go list ./...  | grep -v '/cmd/' | egrep -v '(testing|test|m
 export GO_IMAGE = golang:$(shell go version | cut -d ' ' -f 3 | tail -c +3 )
 
 # This is the default target, build the indexer:
-cmd/algorand-indexer/algorand-indexer: idb/postgres/internal/schema/setup_postgres_sql.go go-algorand
+cmd/algorand-indexer/algorand-indexer: idb/postgres/internal/schema/setup_postgres_sql.go submodules go-algorand
 	cd cmd/algorand-indexer && go build -ldflags="${GOLDFLAGS}"
 
+submodules:
+	git submodule update --init
+
 go-algorand:
-	git submodule update --init && cd third_party/go-algorand && \
-		make crypto/libs/`scripts/ostype.sh`/`scripts/archtype.sh`/lib/libsodium.a
+	cd third_party/go-algorand && make crypto/libs/`scripts/ostype.sh`/`scripts/archtype.sh`/lib/libsodium.a
 
 idb/postgres/internal/schema/setup_postgres_sql.go:	idb/postgres/internal/schema/setup_postgres.sql
 	cd idb/postgres/internal/schema && go generate
@@ -92,5 +94,7 @@ indexer-v-algod-swagger:
 	pytest -sv misc/parity
 
 indexer-v-algod: nightly-setup indexer-v-algod-swagger nightly-teardown
+
+-include Makefile.goreleaser
 
 .PHONY: test e2e integration fmt lint deploy sign test-package package fakepackage cmd/algorand-indexer/algorand-indexer idb/mocks/IndexerDb.go go-algorand indexer-v-algod

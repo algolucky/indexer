@@ -1,0 +1,50 @@
+---
+before:
+  hooks:
+    - make submodules
+builds:
+  - id: algorand-indexer
+    main: ./cmd/algorand-indexer
+    binary: algorand-indexer
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+      - darwin
+    hooks:
+      pre:
+        - make go-algorand
+        - make idb/postgres/internal/schema/setup_postgres_sql.go
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    ldflags:
+      - -X github.com/algorand/indexer/version.Hash={{ .FullCommit }}
+      - -X github.com/algorand/indexer/version.Dirty={{ .Env.VERSION_DIRTY }}
+      - -X github.com/algorand/indexer/version.CompileTime={{ .CommitTimestamp }}
+      - -X github.com/algorand/indexer/version.GitDecorateBase64={{ .Env.VERSION_GIT_BASE64 }}
+      - -X github.com/algorand/indexer/version.ReleaseVersion={{ .Version }}
+    ignore:
+      - goarch: "386"
+        goos: darwin
+      - goarch: "386"
+        goos: linux
+
+archives:
+  - name_template: "{{ .ProjectName }}-{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    wrap_in_directory: false
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-develop"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
